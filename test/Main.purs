@@ -2,20 +2,29 @@ module Test.Main where
 
 import Prelude
 
-import Data.Foldable (traverse_)
-import Data.Maybe (maybe)
+import Account (mkAccount)
+import Data.Array (filter) as A
+import Data.Maybe (Maybe, isJust)
+import Data.Traversable (traverse)
 import Effect (Effect)
-import Effect.Console (log, logShow)
-import Entry (makeDateEntry)
+import Effect.Console (logShow)
+import Entry (Entry, makeDateEntry)
 
 main :: Effect Unit
-main = do
-  entries <-
-    ado
-      e1 <- makeDateEntry { date: { day:  6, month: 7, year: 2017 }, amount: 39.25 }
-      e2 <- makeDateEntry { date: { day: 13, month: 7, year: 2017 }, amount: 42.94 }
-      e3 <- makeDateEntry { date: { day: 20, month: 7, year: 2017 }, amount: 42.33 }
-      e4 <- makeDateEntry { date: { day: 27, month: 7, year: 2017 }, amount: 54.20 }
-      e5 <- makeDateEntry { date: { day: 32, month: 7, year: 2017 }, amount: 54.20 }
-    in [ e1, e2, e3, e4, e5 ]
-  traverse_ (maybe (log "error") (logShow)) entries
+main =
+  let
+    m d m y a = makeDateEntry { date: { day:  d, month: m, year: y }, amount: a }
+    (entries :: Effect (Array (Maybe Entry))) = traverse (\go -> go >>= pure)
+      [ m  5 12 2016 117.30
+      , m 28  2 2017 122.40
+      , m  4  6 2017  86.70
+      , m 30  8 2017  86.70
+      , m  7 12 2017  86.70
+      , m  8  3 2018 117.30
+      , m 28  5 2018 127.50
+      , m 29  8 2018  86.70
+      , m 29 11 2018  66.30
+      , m 28  2 2019 111.15
+      ]
+  in
+    logShow <<< mkAccount <<< A.filter isJust =<< entries
