@@ -1,5 +1,6 @@
 module Time
   ( DateData
+  , TimeData
   , DateTimeData
   , now
   , noon
@@ -21,8 +22,21 @@ import Data.Time.Duration (Minutes(..)) as Duration
 import Effect (Effect)
 import Effect.Now as Effect.Now
 
-type DateData = { day :: Int, month :: Int, year :: Int }
-type DateTimeData = { millisecond :: Int, second :: Int, minute :: Int, hour :: Int, day :: Int, month :: Int, year :: Int }
+type DateData =
+  { year  :: Int
+  , month :: Int
+  , day   :: Int
+  }
+type TimeData =
+  { hour        :: Int
+  , minute      :: Int
+  , second      :: Int
+  , millisecond :: Int
+  }
+type DateTimeData =
+  { data :: DateData
+  , time :: TimeData
+  }
 
 now :: Effect Instant
 now = Effect.Now.now
@@ -37,11 +51,11 @@ noon = do
     }
 
 makeDateInstant :: DateData -> Effect (Maybe Instant)
-makeDateInstant { year, month, day } =
-  makeDateTimeInstant { year, month, day, hour: 12, minute: 0, second: 0, millisecond: 0 }
+makeDateInstant date =
+  makeDateTimeInstant date { hour: 12, minute: 0, second: 0, millisecond: 0 }
 
-makeDateTimeInstant :: DateTimeData -> Effect (Maybe Instant)
-makeDateTimeInstant { year, month, day, hour, minute, second, millisecond } =
+makeDateTimeInstant :: DateData -> TimeData -> Effect (Maybe Instant)
+makeDateTimeInstant { year, month, day } { hour, minute, second, millisecond } =
   let
     mDateTime =
       ado

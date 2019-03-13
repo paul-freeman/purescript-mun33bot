@@ -1,17 +1,20 @@
 module Entry
-  ( Entry
+  ( Entry(..)
+  , EntryData(..)
   , makeInstantEntry
   , makeDateEntry
+  , makeDateTimeEntry
   ) where
 
 import Prelude
 
-import Control.Apply (lift2)
+
+
 import Data.DateTime.Instant (Instant)
 import Data.JSDate as JSDate
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
+import Data.Traversable (traverse)
 import Effect (Effect)
-import Optic.Core (set, (..))
 import Time as Time
 
 newtype Entry =
@@ -49,24 +52,38 @@ makeInstantEntry { amount } = do
       }
     }
 
-makeDateEntry :: { amount :: Number, date :: { day :: Int, month :: Int, year :: Int } } -> Effect (Maybe Entry)
+makeDateEntry
+  ::{ amount :: Number
+    , date ::
+      { day :: Int
+      , month :: Int
+      , year :: Int
+      }
+    }
+  -> Effect (Maybe Entry)
 makeDateEntry { date, amount } =
-  let
-    _Entry f (Entry o) = Entry <$> f o
-    entryData f o = f o.entryData <#> \entryData' -> o{entryData = entryData'}
-    _EntryData f (EntryData o) = EntryData <$> f o
-    time f o = f o.time <#> \time' -> o{time = time'}
-    changeTime = set (_Entry..entryData.._EntryData..time)
-  in
-  ado
-    n <- Time.now
-    t <- Time.makeDateInstant date
-  in
-    (lift2 changeTime) t $ Just $
-      Entry
-        { timestamp: n
-        , entryData: EntryData
-          { time: n
-          , amount
-          }
-        }
+  Time.now >>= \timestamp ->
+    Time.makeDateInstant date >>=
+      traverse \time ->
+        pure $ Entry { timestamp, entryData: EntryData { time, amount } }
+
+makeDateTimeEntry
+  ::{ amount :: Number
+    , date ::
+      { day :: Int
+      , month :: Int
+      , year :: Int
+      }
+    , time ::
+      { hour :: Int
+      , minute :: Int
+      , second :: Int
+      , millisecond :: Int
+      }
+    }
+  -> Effect (Maybe Entry)
+makeDateTimeEntry { amount, date, time: time' } =
+  Time.now >>= \timestamp ->
+    Time.makeDateTimeInstant date time' >>=
+      traverse \time ->
+        pure $ Entry { timestamp, entryData: EntryData { time, amount } }

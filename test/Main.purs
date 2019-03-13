@@ -3,18 +3,20 @@ module Test.Main where
 import Prelude
 
 import Account (mkAccount)
-import Data.Array (filter) as A
+import Data.Array (catMaybes, filter) as A
 import Data.Maybe (Maybe, isJust)
-import Data.Traversable (traverse)
+import Data.Traversable (sequence, traverse)
 import Effect (Effect)
 import Effect.Console (logShow)
-import Entry (Entry, makeDateEntry)
+import Entry (Entry, makeDateTimeEntry)
+import Time as Time
 
 main :: Effect Unit
 main =
   let
-    m d m y a = makeDateEntry { date: { day:  d, month: m, year: y }, amount: a }
-    (entries :: Effect (Array (Maybe Entry))) = traverse (\go -> go >>= pure)
+    time = { hour: 0, minute: 0, second: 0, millisecond: 0 }
+    m d m y a = makeDateTimeEntry { date: { day:  d, month: m, year: y }, time, amount: a }
+    (entries :: Effect (Array (Maybe Entry))) = sequence
       [ m  5 12 2016 117.30
       , m 28  2 2017 122.40
       , m  4  6 2017  86.70
@@ -26,5 +28,7 @@ main =
       , m 29 11 2018  66.30
       , m 28  2 2019 111.15
       ]
-  in
-    logShow <<< mkAccount <<< A.filter isJust =<< entries
+  in do
+    now <- Time.now
+    (e :: Array (Maybe Entry)) <- entries
+    logShow $ mkAccount now $ A.catMaybes e
